@@ -1,0 +1,765 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HID Campus Access</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
+<style>
+:root{
+  --bg:#F0F4FB;--ink:#0B1526;--mut:#5A6680;--line:#D8E1F0;--card:#fff;
+  --blue:#1A5CDB;--blue2:#EAF0FF;--blue3:#3A7AFF;
+  --ok:#0C9B55;--okbg:#E2F7ED;--warn:#C07800;--warnbg:#FFF5D6;
+  --bad:#D42035;--badbg:#FCE5E8;--r:16px;
+  --shadow:0 2px 8px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.04);
+  --shadow-lg:0 8px 24px rgba(0,0,0,.10),0 2px 6px rgba(0,0,0,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:14.5px;line-height:1.55}
+button,select,input{font:inherit;color:inherit}
+
+/* ── HEADER ── */
+header{
+  display:flex;align-items:center;gap:14px;
+  padding:14px 28px;
+  background:linear-gradient(135deg,#0B1526 0%,#162040 100%);
+  color:#fff;
+  border-bottom:1px solid #1E2F50;
+  box-shadow:0 2px 12px rgba(0,0,0,.18);
+}
+.logo{
+  display:flex;align-items:center;gap:8px;
+  background:linear-gradient(135deg,#1A5CDB,#3A7AFF);
+  font-weight:800;letter-spacing:.05em;
+  padding:6px 14px;border-radius:8px;font-size:18px;
+  box-shadow:0 2px 8px rgba(26,92,219,.35);
+}
+.logo-dot{width:8px;height:8px;border-radius:50%;background:#5CFF9D;box-shadow:0 0 6px #5CFF9D99}
+header h1{font-size:16px;font-weight:600;flex:1;line-height:1.3}
+header h1 small{display:block;font-weight:400;color:#7A90C4;font-size:12px;margin-top:1px}
+.pill{
+  display:flex;align-items:center;gap:7px;
+  padding:7px 14px;border-radius:99px;
+  background:#1A2B4A;font-size:12.5px;cursor:pointer;
+  border:1px solid #2A3F6A;color:#C8D8F4;
+  transition:background .2s,border-color .2s;
+}
+.pill:hover{background:#22375E;border-color:#3D5A8A}
+.dot{width:8px;height:8px;border-radius:50%;background:#0C9B55;box-shadow:0 0 6px #0C9B5566;transition:background .3s}
+.off .dot{background:var(--bad);box-shadow:0 0 6px #D4203566}
+
+/* ── LAYOUT ── */
+.shell{display:flex;align-items:flex-start;min-height:calc(100vh - 56px)}
+.side{
+  width:200px;flex:none;padding:20px 12px;
+  display:flex;flex-direction:column;gap:4px;
+  position:sticky;top:0;height:calc(100vh - 56px);
+  background:#fff;border-right:1px solid var(--line);
+}
+.side-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);padding:12px 10px 6px;margin-top:4px}
+.side button{
+  text-align:left;border:0;background:transparent;
+  padding:10px 12px;border-radius:10px;
+  font-weight:600;font-size:13.5px;cursor:pointer;
+  display:flex;align-items:center;gap:9px;
+  color:var(--mut);transition:background .15s,color .15s;
+}
+.side button:hover{background:#F3F7FF;color:var(--ink)}
+.side button.on{background:var(--blue2);color:var(--blue)}
+.side button small{display:block;font-weight:400;color:inherit;font-size:11.5px;opacity:.75;line-height:1.3}
+.side-icon{font-size:17px;line-height:1}
+.content{flex:1;min-width:0;padding:28px 32px 110px;max-width:1300px}
+
+/* ── GRID ── */
+.grid{display:grid;grid-template-columns:minmax(360px,540px) 1fr;gap:22px;align-items:start}
+@media(max-width:1050px){.grid{grid-template-columns:1fr}.shell{flex-direction:column}.side{width:100%;height:auto;flex-direction:row;position:static;border-right:0;border-bottom:1px solid var(--line);padding:12px 16px}.side-label{display:none}.content{padding:20px 16px 110px;width:100%}}
+
+/* ── CARDS ── */
+.card{
+  background:var(--card);border-radius:var(--r);
+  padding:22px;border:1px solid var(--line);
+  box-shadow:var(--shadow);
+  transition:box-shadow .2s;
+}
+.card:hover{box-shadow:var(--shadow-lg)}
+h2{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+h2 .h2-icon{font-size:17px}
+
+/* ── VIDEO STAGE ── */
+.stage{
+  position:relative;border-radius:14px;overflow:hidden;
+  background:linear-gradient(135deg,#0A1530,#0F2050);
+  aspect-ratio:4/3;
+  box-shadow:0 4px 16px rgba(0,0,0,.2);
+}
+video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+.frame{
+  position:absolute;inset:12%;pointer-events:none;
+  border-radius:4px;
+  background:
+    linear-gradient(#5CFF9D,#5CFF9D) top left/36px 4px no-repeat,
+    linear-gradient(#5CFF9D,#5CFF9D) top left/4px 36px no-repeat,
+    linear-gradient(#5CFF9D,#5CFF9D) top right/36px 4px no-repeat,
+    linear-gradient(#5CFF9D,#5CFF9D) top right/4px 36px no-repeat,
+    linear-gradient(#5CFF9D,#5CFF9D) bottom left/36px 4px no-repeat,
+    linear-gradient(#5CFF9D,#5CFF9D) bottom left/4px 36px no-repeat,
+    linear-gradient(#5CFF9D,#5CFF9D) bottom right/36px 4px no-repeat,
+    linear-gradient(#5CFF9D,#5CFF9D) bottom right/4px 36px no-repeat;
+}
+.prompt{
+  position:absolute;left:0;right:0;bottom:0;
+  padding:16px 18px;
+  background:linear-gradient(transparent,rgba(10,21,48,.85));
+  color:#fff;font-weight:600;text-align:center;font-size:15px;
+  letter-spacing:.01em;
+}
+.scanning-ring{
+  position:absolute;inset:12%;border-radius:4px;pointer-events:none;
+  border:2px solid transparent;
+  animation:none;
+}
+.scanning-ring.active{
+  border-color:#5CFF9D44;
+  animation:pulse-ring 1.8s ease-in-out infinite;
+}
+@keyframes pulse-ring{0%,100%{box-shadow:0 0 0 0 #5CFF9D22}50%{box-shadow:0 0 0 12px #5CFF9D00}}
+
+/* ── BUTTONS / CONTROLS ── */
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;align-items:end}
+label{font-size:12px;color:var(--mut);font-weight:600;display:block;margin-bottom:4px;letter-spacing:.01em}
+select,input{
+  padding:9px 11px;border-radius:9px;
+  border:1.5px solid var(--line);background:#fff;min-width:0;
+  transition:border-color .2s;
+}
+select:focus,input:focus{border-color:var(--blue);outline:none;box-shadow:0 0 0 3px #1A5CDB18}
+.btn{
+  padding:10px 20px;border-radius:9px;border:0;
+  background:linear-gradient(135deg,var(--blue),var(--blue3));
+  color:#fff;font-weight:600;cursor:pointer;
+  box-shadow:0 2px 8px rgba(26,92,219,.25);
+  transition:opacity .15s,transform .1s,box-shadow .15s;
+  display:inline-flex;align-items:center;gap:7px;
+}
+.btn:hover{opacity:.9;transform:translateY(-1px);box-shadow:0 4px 14px rgba(26,92,219,.3)}
+.btn:active{transform:translateY(0)}
+.btn.sec{
+  background:#fff;color:var(--blue);
+  border:1.5px solid var(--line);
+  box-shadow:var(--shadow);
+}
+.btn.sec:hover{background:var(--blue2);border-color:var(--blue)}
+.btn.danger{background:linear-gradient(135deg,var(--bad),#E8384F);box-shadow:0 2px 8px rgba(212,32,53,.25)}
+.btn:disabled{opacity:.45;cursor:default;transform:none!important}
+.btn:focus-visible,select:focus-visible,input:focus-visible,.pill:focus-visible,.side button:focus-visible{outline:3px solid #3A7AFF;outline-offset:2px}
+
+/* ── RESULT BOXES ── */
+.result{margin-top:16px;border-radius:14px;padding:18px 20px;display:none;border:1.5px solid transparent}
+.result.ALLOW{background:var(--okbg);color:#065C32;border-color:#A5E6C2}
+.result.STEP_UP{background:var(--warnbg);color:#6B4100;border-color:#F5D87A}
+.result.DENY{background:var(--badbg);color:#7A0E1E;border-color:#F4B3BB}
+.result .big{font-size:22px;font-weight:800;display:flex;align-items:center;gap:10px}
+.result-icon{font-size:24px}
+.chip{
+  display:inline-block;padding:3px 12px;border-radius:99px;
+  background:#7A0E1E;color:#fff;font-weight:700;font-size:12px;margin:6px 0;
+  letter-spacing:.02em;
+}
+.meta{margin-top:10px;font-size:12.5px;opacity:.8;line-height:1.6}
+
+/* ── PERFORMANCE METRICS ── */
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:600px){.metrics{grid-template-columns:1fr}}
+.m{
+  background:linear-gradient(135deg,#F7F9FF,#EEF4FF);
+  border:1px solid var(--line);
+  border-radius:14px;padding:18px;
+  position:relative;overflow:hidden;
+}
+.m::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--blue),var(--blue3));
+  opacity:0;transition:opacity .3s;
+}
+.m.has-data::before{opacity:1}
+.m span{font-size:12px;color:var(--mut);font-weight:600;letter-spacing:.02em;text-transform:uppercase}
+.m b{display:block;font-size:30px;font-weight:800;font-variant-numeric:tabular-nums;margin:6px 0 2px;color:var(--ink)}
+.m small{color:var(--mut);font-size:12px}
+.st{
+  float:right;font-size:11px;font-weight:700;padding:3px 10px;
+  border-radius:99px;margin-top:-2px;letter-spacing:.02em;
+}
+.st.pass{background:var(--okbg);color:var(--ok);border:1px solid #A5E6C2}
+.st.fail{background:var(--badbg);color:var(--bad);border:1px solid #F4B3BB}
+.st.nodata{background:#F3F5FA;color:var(--mut)}
+small.note{color:var(--mut);font-size:12px;display:block;margin-top:12px;line-height:1.6}
+
+/* ── LIVENESS SCORE BAR ── */
+.score-bar{margin-top:12px;height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+.score-fill{height:100%;border-radius:99px;transition:width .6s ease,background .4s;background:var(--ok)}
+.score-fill.low{background:var(--bad)}.score-fill.mid{background:var(--warn)}
+
+/* ── SIGNALS GRID ── */
+.signals{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.sig{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:4px 11px;border-radius:99px;
+  font-size:12px;font-weight:600;
+  background:#F3F5FA;color:var(--mut);
+  border:1px solid var(--line);
+}
+.sig.ok{background:var(--okbg);color:var(--ok);border-color:#A5E6C2}
+.sig.warn{background:var(--warnbg);color:var(--warn);border-color:#F5D87A}
+
+/* ── WHO / IDENTITY ── */
+.who{font-weight:700;font-size:15px;margin-top:14px;display:flex;align-items:center;gap:8px}
+.id-card{border-radius:14px;overflow:hidden;border:1px solid var(--line);max-width:340px;box-shadow:var(--shadow)}
+.id-card .top{background:linear-gradient(135deg,var(--blue),var(--blue3));color:#fff;padding:11px 15px;font-weight:700;font-size:13px;letter-spacing:.02em}
+.id-card .bd{padding:14px 15px;background:#fff}.id-card .bd p{font-size:12px;color:var(--mut);margin-top:2px}.id-card .bd b{font-size:15px}.id-card svg{width:100%;height:70px;margin-top:10px}
+
+/* ── STACK / MISC ── */
+.stack{display:flex;flex-direction:column;gap:22px}
+details summary{cursor:pointer;font-size:13px;color:var(--mut);font-weight:600;margin-top:14px;padding:8px 10px;border-radius:8px;background:#F7F9FF;border:1px solid var(--line)}
+details summary:hover{background:var(--blue2)}
+
+/* ── EVAL FOOTER ── */
+.evalbar{
+  position:fixed;left:0;right:0;bottom:0;
+  background:linear-gradient(135deg,#0E1E3A,#162040);
+  color:#fff;padding:12px 24px;
+  display:flex;gap:16px;align-items:center;flex-wrap:wrap;
+  font-size:12.5px;z-index:5;
+  border-top:1px solid #1E2F50;
+  box-shadow:0 -4px 20px rgba(0,0,0,.2);
+}
+.evalbar-title{display:flex;align-items:center;gap:8px}
+.evalbar-badge{
+  background:linear-gradient(135deg,#F5A623,#E8830A);
+  color:#fff;font-weight:700;font-size:10.5px;
+  padding:2px 9px;border-radius:99px;letter-spacing:.04em;
+}
+.evalbar label{color:#8EB0DC;margin:0;display:flex;gap:7px;align-items:center;font-size:12px}
+.evalbar select{
+  padding:5px 9px;border-radius:7px;font-size:12px;
+  background:#1A2B4A;border:1px solid #2A3F6A;color:#C8D8F4;
+}
+.evalbar .btn.sec{
+  padding:6px 14px;font-size:12px;
+  background:#1A2B4A;border-color:#2A3F6A;color:#8EB0DC;
+  box-shadow:none;
+}
+.evalbar .btn.sec:hover{background:#22375E;color:#fff}
+.evalbar-hint{color:#5A7AAA;font-size:11.5px;flex:1;text-align:right}
+@media(max-width:700px){.evalbar-hint{display:none}}
+
+/* ── STATUS BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:600}
+.badge.online{background:#E2F7ED;color:var(--ok);border:1px solid #A5E6C2}
+.badge.offline{background:var(--badbg);color:var(--bad);border:1px solid #F4B3BB}
+
+.hide{display:none!important}
+@media(prefers-reduced-motion:no-preference){
+  .result{animation:pop .22s ease}
+  @keyframes pop{from{transform:translateY(4px) scale(.98);opacity:0}}
+}
+
+/* ── SPINNER ── */
+.spinner{display:inline-block;width:16px;height:16px;border:2.5px solid #fff4;border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── PROGRESS INDICATOR ── */
+.progress-steps{display:flex;gap:6px;margin-top:12px;align-items:center}
+.step-dot{width:8px;height:8px;border-radius:50%;background:var(--line);transition:background .3s}
+.step-dot.done{background:var(--ok)}.step-dot.active{background:var(--blue);box-shadow:0 0 6px var(--blue)}
+
+/* ── DIVIDER ── */
+.divider{height:1px;background:var(--line);margin:16px 0}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><div class="logo-dot"></div>HID</div>
+  <h1>Campus Access<small>Liveness check (AWS Rekognition) + barcode ID entry · works online and offline</small></h1>
+  <button class="pill" id="netPill" title="Simulate losing the connection to the central service">
+    <span class="dot"></span><span id="netTxt">Online</span>
+  </button>
+</header>
+
+<div class="shell">
+<nav class="side">
+  <div class="side-label">Navigation</div>
+  <button data-v="lab" class="on" onclick="view('lab')">
+    <span class="side-icon">🔬</span>
+    <span>Liveness Lab<small>Real person or spoof?</small></span>
+  </button>
+  <button data-v="kiosk" onclick="view('kiosk')">
+    <span class="side-icon">🏛️</span>
+    <span>Campus Kiosk<small>Scan ID card to enter</small></span>
+  </button>
+</nav>
+<div class="content">
+
+<!-- ============ LIVENESS LAB ============ -->
+<div class="grid" id="viewLab">
+  <section class="card">
+    <h2><span class="h2-icon">📷</span> Liveness check</h2>
+    <div class="stage">
+      <video id="cam2" autoplay playsinline muted></video>
+      <div class="frame"></div>
+      <div class="scanning-ring" id="scanRing2"></div>
+      <div class="prompt" id="prompt2">Stand in front of the camera and press Check liveness</div>
+    </div>
+    <div class="row">
+      <button class="btn" id="runLab">
+        <span id="runLabIcon">▶</span> Check liveness
+      </button>
+    </div>
+    <div class="result" id="labRes">
+      <div class="big" id="labV"></div>
+      <div class="chip hide" id="labType"></div>
+      <div id="labWhy" style="margin-top:8px;font-size:13.5px"></div>
+      <div class="score-bar" id="scoreBar" style="display:none"><div class="score-fill" id="scoreFill"></div></div>
+      <div id="labSignals" class="signals"></div>
+      <div class="meta" id="labMeta"></div>
+    </div>
+  </section>
+
+  <div class="stack">
+    <section class="card">
+      <h2><span class="h2-icon">📊</span> Performance evaluation</h2>
+      <div class="metrics" id="metrics"></div>
+      <div class="signals" id="scen"></div>
+      <small class="note" id="metNote"></small>
+    </section>
+
+    <section class="card">
+      <h2><span class="h2-icon">👁️</span> Eye & signal quality</h2>
+      <div id="eyeSignals" style="font-size:13px;color:var(--mut)">Run a liveness check to see real-time biometric signals.</div>
+    </section>
+  </div>
+</div>
+
+<!-- ============ CAMPUS KIOSK ============ -->
+<div class="grid hide" id="viewKiosk">
+  <section class="card">
+    <h2><span class="h2-icon">🚪</span> Campus entry</h2>
+    <div class="row" style="margin:0 0 12px">
+      <button class="btn" id="modeEntry">🚪 Entry</button>
+      <button class="btn sec" id="modeReg">🆕 Register card</button>
+    </div>
+    <div class="stage">
+      <video id="cam" autoplay playsinline muted></video>
+      <div class="frame" style="inset:20% 8%"></div>
+      <div class="scanning-ring" id="scanRing"></div>
+      <div class="prompt" id="prompt">Hold your student ID barcode inside the frame</div>
+    </div>
+
+    <div id="pEntry">
+      <div class="row">
+        <div><label for="zone">Door</label><select id="zone">
+          <option value="main_gate">🏫 Main gate</option>
+          <option value="library">📚 Library</option>
+          <option value="labs">🔬 Labs</option>
+          <option value="hostel">🏠 Hostel</option>
+        </select></div>
+        <div><label for="bcManual">Or type barcode</label><input id="bcManual" placeholder="PES1202401983" autocomplete="off"></div>
+        <button class="btn sec" id="bcGo">Check</button>
+        <button class="btn sec" id="again">↩ Next person</button>
+      </div>
+      <div class="result" id="result">
+        <div class="big" id="rDec"></div>
+        <div id="rWhy" style="margin-top:8px;font-size:13.5px"></div>
+        <div class="meta" id="rMeta"></div>
+      </div>
+    </div>
+
+    <div id="pReg" class="hide">
+      <small class="note" style="margin-top:12px">1) Show the card barcode to the camera (or type it). 2) Enter the PRN. 3) Press Register. After this, scanning that barcode gives Allowed / Not allowed.</small>
+      <div class="row">
+        <div><label for="rgBarcode">Barcode</label><input id="rgBarcode" placeholder="scan or type" autocomplete="off"></div>
+        <div><label for="rgPrn">PRN</label><input id="rgPrn" placeholder="PES1UG24CA148" autocomplete="off"></div>
+        <div><label for="rgName">Name (optional)</label><input id="rgName" autocomplete="off"></div>
+      </div>
+      <div class="row" style="align-items:center">
+        <label style="margin:0"><input type="checkbox" class="rgz" value="main_gate" checked> Main gate</label>
+        <label style="margin:0"><input type="checkbox" class="rgz" value="library" checked> Library</label>
+        <label style="margin:0"><input type="checkbox" class="rgz" value="labs"> Labs</label>
+        <label style="margin:0"><input type="checkbox" class="rgz" value="hostel"> Hostel</label>
+      </div>
+      <div class="row"><button class="btn" id="rgGo">✓ Register</button></div>
+      <small class="note" id="rgMsg"></small>
+    </div>
+  </section>
+  <div class="stack">
+    <section class="card">
+      <h2><span class="h2-icon">🗂️</span> Registered cards (<span id="cardN">0</span>)</h2>
+      <div id="cardList" style="max-height:230px;overflow:auto;font-size:12.5px"></div>
+    </section>
+    <section class="card">
+      <h2><span class="h2-icon">🪪</span> Demo card</h2>
+      <div class="id-card">
+        <div class="top">PES University · Student ID</div>
+        <div class="bd"><b>Demo Student</b><p>Barcode: <span id="cardPrn">PES1202401983</span></p><svg id="bc"></svg></div>
+      </div>
+      <div class="row"><button class="btn sec" id="useCard">📲 Simulate scan</button></div>
+      <small class="note">Show this barcode to the camera from another screen, or press the button. Real cards: hold the barcode flat and steady 20–30 cm away.</small>
+    </section>
+    <section class="card">
+      <h2><span class="h2-icon">🔌</span> Offline mode</h2>
+      <p style="font-size:13px">Pending items to sync: <b id="qN">0</b></p>
+      <small class="note">Offline, the kiosk uses the card list it downloaded last time it was online. Decisions and new registrations are saved on this device and sent to the server when the connection returns.</small>
+      <div class="row"><button class="btn sec" id="syncBtn">🔄 Sync now</button></div>
+    </section>
+  </div>
+</div>
+
+</div></div>
+
+<!-- ============ EVAL FOOTER ============ -->
+<div class="evalbar" id="evalBar">
+  <div class="evalbar-title">
+    <span class="evalbar-badge">SCORING</span>
+    <span style="color:#8EB0DC">Tell the app what you are showing the camera. The detector never sees this.</span>
+  </div>
+  <label>Showing
+    <select id="evTruth">
+      <option value="live">🙂 Real person</option>
+      <option value="printed">🖨️ Printed photo</option>
+      <option value="screen">🖥️ Screen replay</option>
+      <option value="video">📹 Video replay</option>
+      <option value="mask">🎭 Mask</option>
+      <option value="">⏭ Don't score this run</option>
+    </select>
+  </label>
+  <button class="btn sec" id="csv">⬇ Export CSV</button>
+  <button class="btn sec danger" id="reset">🗑 Clear results</button>
+  <span class="evalbar-hint">Every Liveness Lab run is scored with the option chosen here and fills Performance evaluation.</span>
+</div>
+
+<script>
+const $=s=>document.querySelector(s),pct=(x,d=1)=>x==null?'–':(x*100).toFixed(d)+'%';
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x)),wait=ms=>new Promise(r=>setTimeout(r,ms));
+const evT=()=>$('#evTruth').value||null;
+let policy=JSON.parse(localStorage.getItem('policy')||'null'),simOffline=false,step=1,attempt=null,reader=null,rt=null;
+const offline=()=>simOffline||!navigator.onLine;
+const queue=()=>JSON.parse(localStorage.getItem('auditQueue')||'[]');
+const setQ=q=>{localStorage.setItem('auditQueue',JSON.stringify(q));$('#qN').textContent=q.length};
+const post=(u,b)=>fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});
+
+// ── Challenge text map — blink replaces open_mouth ──
+const CH={turn:'Slowly turn your head to one side',blink:'Blink your eyes slowly, twice',smile:'Give a big smile'};
+const ATK={printed:'Printed photo',screen:'Screen replay',video:'Video replay',mask:'3D / printed mask'};
+
+function view(v){
+  $('#viewLab').classList.toggle('hide',v!=='lab');$('#viewKiosk').classList.toggle('hide',v!=='kiosk');
+  document.querySelectorAll('.side button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  $('#evalBar').classList.toggle('hide',v!=='lab');
+  if(v==='kiosk'&&!window._scanOn){window._scanOn=true;initScanner()}
+}
+function renderNet(){const off=offline();$('#netPill').classList.toggle('off',off);$('#netTxt').textContent=off?'Offline':'Online'}
+$('#netPill').onclick=()=>{simOffline=!simOffline;renderNet();if(!offline())syncNow()};
+addEventListener('online',()=>{renderNet();syncNow()});addEventListener('offline',renderNet);
+async function loadPolicy(){try{const r=await fetch('/api/policy');if(!r.ok)return;policy=await r.json();localStorage.setItem('policy',JSON.stringify(policy));renderCards()}catch{}}
+
+/* ── camera ── */
+async function startCam(){
+  try{const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1920},height:{ideal:1080}}});$('#cam').srcObject=s;$('#cam2').srcObject=s}
+  catch{$('#prompt').textContent=$('#prompt2').textContent='Camera blocked — allow camera access in the browser'}
+}
+function snap(v=$('#cam')){const c=document.createElement('canvas');c.width=960;c.height=Math.round(960*v.videoHeight/v.videoWidth)||720;c.getContext('2d').drawImage(v,0,0,c.width,c.height);return c.toDataURL('image/jpeg',.92)}
+
+/* ── on-device spoof analysis (no network needed) ── */
+function grab(v){
+  const c=grab.c||(grab.c=document.createElement('canvas'));c.width=320;c.height=240;
+  const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(v,0,0,320,240);
+  const d=x.getImageData(0,0,320,240).data,g=new Float32Array(76800),s=new Float32Array(76800);
+  for(let i=0,j=0;i<d.length;i+=4,j++){const r=d[i],q=d[i+1],b=d[i+2],mx=Math.max(r,q,b),mn=Math.min(r,q,b);g[j]=.299*r+.587*q+.114*b;s[j]=mx?(mx-mn)/mx:0}
+  return {g,s};
+}
+function feats(fr){
+  const W=320,m=fr[fr.length>>1],f=m.g;let hf=0,lf=0,gl=0,n=0,sm=0,sq=0;
+  for(let y=48;y<200;y++)for(let x=80;x<240;x++){const i=y*W+x,v=f[i];
+    hf+=Math.abs(f[i-1]-2*v+f[i+1])+Math.abs(f[i-W]-2*v+f[i+W]);
+    lf+=Math.abs(f[i-4]-f[i+4])+Math.abs(f[i-4*W]-f[i+4*W]);
+    if(v>245)gl++;const s=m.s[i];sm+=s;sq+=s*s;n++}
+  const mean=sm/n,col=new Float32Array(W),row=new Float32Array(240);
+  for(let y=2;y<238;y++)for(let x=2;x<318;x++){const i=y*W+x;col[x]+=Math.abs(f[i+1]-f[i-1]);row[y]+=Math.abs(f[i+W]-f[i-W])}
+  const pk=a=>{let mx=0,t=0;for(let k=8;k<a.length-8;k++){mx=Math.max(mx,a[k]);t+=a[k]}return mx/(t/(a.length-16)+1)};
+  let mo=0;const blk=new Float32Array(16),bn=new Float32Array(16);
+  for(let k=1;k<fr.length;k++){const a=fr[k-1].g,b=fr[k].g;
+    for(let y=48;y<200;y+=2)for(let x=80;x<240;x+=2){const d=Math.abs(a[y*W+x]-b[y*W+x]);mo+=d;const bi=((y-48)/38|0)*4+((x-80)/40|0);blk[bi]+=d;bn[bi]++}}
+  const bm=[...blk].map((v,i)=>v/bn[i]),bmean=bm.reduce((a,b)=>a+b,0)/16,bsd=Math.sqrt(bm.reduce((a,b)=>a+(b-bmean)**2,0)/16);
+  const br=fr.map(q=>{let t=0;for(let i=0;i<76800;i+=4)t+=q.g[i];return t/19200});
+  let fl=0;for(let k=1;k<br.length;k++)fl+=Math.abs(br[k]-br[k-1]);
+
+  /* ── Eye-region sharpness: measure Laplacian variance in the eye zones ── */
+  /* Eye zones (approximate): left ~y[60-100] x[90-150], right ~y[60-100] x[170-230] */
+  let eyeSharp=0,eyeN=0;
+  const eyeZones=[[60,100,90,150],[60,100,170,230]];
+  for(const [y0,y1,x0,x1] of eyeZones){
+    for(let y=y0+1;y<y1-1;y++)for(let x=x0+1;x<x1-1;x++){
+      const i=y*W+x,v=f[i];
+      eyeSharp+=(f[i-1]-2*v+f[i+1])**2+(f[i-W]-2*v+f[i+W])**2;eyeN++;
+    }
+  }
+  /* Normalize: higher = sharper / more in-focus eyes */
+  const eyeSharpScore=eyeN?Math.sqrt(eyeSharp/eyeN)/255:0;
+
+  return {moire:hf/(lf+1),flicker:fl/(br.length-1)/(br[0]+1),glare:gl/n,border:Math.max(pk(col),pk(row)),
+    motion:mo/((fr.length-1)*76*80),nonrigid:bsd/(bmean+1e-4),chroma:Math.sqrt(Math.max(0,sq/n-mean*mean)),texture:hf/n,
+    eyeSharp:eyeSharpScore};
+}
+/* the device learns what a real face looks like on THIS camera from confirmed-real online checks */
+const baseline=()=>JSON.parse(localStorage.getItem('baseline')||'null');
+function learn(F){const B=baseline()||{},n=Math.min(B.n||0,30),nb={n:(B.n||0)+1};Object.keys(F).forEach(k=>nb[k]=n?(B[k]*n+F[k])/(n+1):F[k]);localStorage.setItem('baseline',JSON.stringify(nb))}
+const dev=(v,b,d)=>b==null?0:clamp(d*(v-b)/(0.5*Math.abs(b)+1e-4),0,1);
+
+/* fuse on-device signals (F) + optional Rekognition signals (S) -> real / spoof type / one-line reason */
+function judge(F,S,ch){
+  const B=baseline()||{};
+  const L={
+    moire:dev(F.moire,B.moire,1),flick:dev(F.flicker,B.flicker,1),
+    glare:B.glare==null?0:clamp((F.glare-B.glare)/0.02,0,1),
+    border:dev(F.border,B.border,1),still:dev(F.motion,B.motion,-1),
+    rigid:dev(F.nonrigid,B.nonrigid,-1),flat:dev(F.chroma,B.chroma,-1),smooth:dev(F.texture,B.texture,-1),
+    eyeBlur:B.eyeSharp==null?0:clamp((B.eyeSharp-F.eyeSharp)/(B.eyeSharp+1e-4),0,1)  // blurry eyes = printed/screen
+  };
+  const lab=S&&S.labels||{printed:0,screen:0,phone:0,mask:0},has=S&&S.face_ok;
+  /* blink challenge: check Rekognition blink signal */
+  const chOK=!has?null:(ch==='turn'?S.yaw_range>=15:ch==='blink'?S.blink:ch==='smile'?S.smile_change:true);
+  const chF=chOK==null?null:+!chOK,nA=has?+!(S.blink||S.mouth_change||S.smile_change||S.yaw_range>=15):null;
+  const T={
+    printed:[[lab.printed/100,.3,'a printed photo or paper edge is visible'],[L.border,.18,'a rectangular photo edge surrounds the face'],[L.rigid,.17,'the face moves like a flat sheet'],[L.still,.12,'the face is unnaturally still, like a picture'],[L.flat,.1,'skin colour and texture look flat, like ink on paper'],[L.eyeBlur,.08,'eyes appear blurry as expected from a photo'],[chF,.13,'it ignored the random challenge']],
+    screen:[[lab.screen/100,.3,'a monitor or screen is in view'],[L.moire,.28,'a pixel-grid (moire) pattern typical of screens is visible'],[L.flick,.2,'brightness flickers like a screen'],[L.glare,.1,'screen glare is on the face'],[L.border,.12,'a screen bezel edge is visible']],
+    video:[[lab.phone/100,.25,'a phone or tablet is in view'],[L.flick,.15,'brightness flickers like a playing video'],[L.moire,.15,'a screen pixel pattern is visible'],[L.border,.1,'a device edge surrounds the face'],[chF,.2,'a pre-recorded video cannot follow the random challenge']],
+    mask:[[lab.mask/100,.3,'a mask-like object is detected'],[L.smooth,.2,'skin texture is unnaturally smooth'],[L.flat,.15,'colour is uniform like a mask surface'],[L.rigid,.1,'the face moves rigidly'],[nA,.25,'there is no blink, smile, mouth or head movement']]};
+  const conf={printed:lab.printed,screen:lab.screen,video:lab.phone,mask:lab.mask},sc={},why={};
+  for(const k in T){const a=T[k].filter(t=>t[0]!=null),w=a.reduce((s,t)=>s+t[1],0);
+    sc[k]=w?a.reduce((s,t)=>s+t[0]*t[1],0)/w:0;why[k]=a.slice().sort((x,y)=>y[0]*y[1]-x[0]*x[1])[0]?.[2]||'';
+    if(conf[k]>=85){sc[k]=Math.max(sc[k],.6+.4*(conf[k]-85)/15);why[k]=T[k][0][2]}}
+  const top=Object.entries(sc).sort((a,b)=>b[1]-a[1])[0],live=+(1-top[1]).toFixed(2);
+  let v='LIVE',type=null,line='Natural movement and skin texture, with no screen, paper or mask signs.';
+  if(top[1]>=.55){v='SPOOF';type=top[0];line=`${ATK[type]}: ${why[type]}.`}
+  else if(top[1]>=.35){v='UNCERTAIN';line='Some spoof signs were found. Try again in steady light, or use extra verification.'}
+  else if(S&&!S.face_ok){v='UNCERTAIN';line=S.hint||'One clear face is needed. Try again.'}
+  else if(chOK===false){v='UNCERTAIN';line='The challenge was not completed. Try again.'}
+  else if(!S&&!baseline()){v='UNCERTAIN';line='Offline and not learned yet: do a few online checks first so this device knows a real face.'}
+  return {v,type,line,sc,live,chOK,eyeSharp:F.eyeSharp,L,S};
+}
+
+/* ── Liveness Lab ── */
+async function runLab(){
+  const btn=$('#runLab');btn.disabled=true;$('#labRes').style.display='none';
+  btn.innerHTML='<span class="spinner"></span> Analysing…';
+  $('#scanRing2').classList.add('active');
+  const isOnline=!offline();let ch=null;
+  if(isOnline){try{ch=(await (await fetch('/api/challenge')).json()).challenge}catch{}}
+  $('#prompt2').textContent=ch?CH[ch]:'Look at the camera and blink naturally';
+  const fr=[],send=[],v=$('#cam2');
+  for(let i=0;i<10;i++){fr.push(grab(v));if(isOnline&&[0,2,4,6,7,9].includes(i))send.push(snap(v));await wait(200)}
+  $('#prompt2').textContent='Analysing…';const t0=performance.now(),F=feats(fr);
+  let S=null,mode=isOnline?'online':'offline (on-device)';
+  if(isOnline){try{const r=await post('/api/analyze',{frames:send});if(r.ok)S=await r.json();else mode='offline (on-device)'}catch{mode='offline (on-device)'}}
+  const J=judge(F,S,ch),ms=Math.round(performance.now()-t0);
+  if(S&&J.v==='LIVE'&&J.chOK&&J.live>=.8&&(!evT()||evT()==='live'))learn(F);
+  showLab(J,mode,ms,S);
+  await logLab(J,mode,ms);  // await so loadReport fires after sync
+  btn.innerHTML='▶ Check liveness';btn.disabled=false;
+  $('#scanRing2').classList.remove('active');
+}
+function showLab(J,mode,ms,S){
+  const el=$('#labRes');el.className='result '+{LIVE:'ALLOW',UNCERTAIN:'STEP_UP',SPOOF:'DENY'}[J.v];el.style.display='block';
+  const icons={LIVE:'✅',UNCERTAIN:'⚠️',SPOOF:'🚫'};
+  $('#labV').innerHTML=`<span class="result-icon">${icons[J.v]}</span>${{LIVE:'Real person',UNCERTAIN:'Could not confirm',SPOOF:'Spoof detected'}[J.v]}`;
+  $('#labType').textContent=J.type?ATK[J.type]:'';$('#labType').classList.toggle('hide',!J.type);
+  $('#labWhy').textContent=J.line;
+
+  /* Liveness score bar */
+  const bar=$('#scoreBar'),fill=$('#scoreFill');
+  bar.style.display='block';
+  fill.style.width=(J.live*100)+'%';
+  fill.className='score-fill'+(J.live>=.8?' ':J.live>=.5?' mid':' low');
+
+  /* Signal chips */
+  const signals=[];
+  if(S){
+    if(S.blink!=null)signals.push({ok:S.blink,label:'👁 Blink '+(S.blink?'detected':'not detected')});
+    if(S.yaw_range!=null)signals.push({ok:S.yaw_range>=8,label:'↔ Head yaw '+S.yaw_range+'°'});
+    if(S.smile_change!=null)signals.push({ok:true,label:'😊 Smile change: '+(S.smile_change?'yes':'no')});
+    if(S.sharpness!=null)signals.push({ok:S.sharpness>30,label:'🔍 Sharpness '+S.sharpness.toFixed(0)});
+    if(S.brightness!=null)signals.push({ok:S.brightness>25,label:'💡 Brightness '+S.brightness.toFixed(0)});
+  }
+  /* Eye sharpness from on-device */
+  if(J.eyeSharp!=null)signals.push({ok:J.eyeSharp>0.015,label:'👁 Eye focus '+(J.eyeSharp>0.015?'sharp':'soft')});
+  $('#labSignals').innerHTML=signals.map(s=>`<span class="sig ${s.ok?'ok':'warn'}">${s.label}</span>`).join('');
+
+  $('#labMeta').textContent=`${mode} · decision in ${ms} ms · liveness score ${J.live.toFixed(2)}`;
+  $('#prompt2').textContent={LIVE:'✅ Real person confirmed',UNCERTAIN:'⚠️ Press Check liveness to retry',SPOOF:'🚫 Presentation attack flagged'}[J.v];
+
+  /* Eye quality panel */
+  updateEyePanel(J,S);
+}
+function updateEyePanel(J,S){
+  const el=$('#eyeSignals');
+  if(!S&&J.eyeSharp==null){el.textContent='No signal data available (offline mode).';return}
+  let html='<div style="display:grid;gap:10px">';
+  const row=(label,val,note)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:#F7F9FF;border-radius:8px;border:1px solid var(--line)"><span style="font-weight:600;font-size:13px">${label}</span><span style="font-size:12px;color:var(--mut)">${note}</span><b style="font-size:14px">${val}</b></div>`;
+  if(J.eyeSharp!=null)html+=row('👁 Eye-region sharpness',J.eyeSharp.toFixed(4),J.eyeSharp>0.015?'✅ in focus':'⚠️ blurry');
+  if(S){
+    if(S.sharpness!=null)html+=row('🔍 Frame sharpness (Rekog)',S.sharpness.toFixed(1),S.sharpness>30?'✅ good':'⚠️ low');
+    if(S.brightness!=null)html+=row('💡 Brightness',S.brightness.toFixed(1),S.brightness>25?'✅ adequate':'⚠️ dark');
+    if(S.confidence!=null)html+=row('🎯 Face confidence',S.confidence.toFixed(1)+'%',S.confidence>90?'✅ clear':'⚠️ uncertain');
+    if(S.blink!=null)html+=row('👁 Blink detected',S.blink?'Yes':'No',S.blink?'✅':'–');
+  }
+  /* NOTE: AWS Rekognition stores face *embeddings* (feature vectors) for identity matching via
+     SearchFacesByImage / IndexFaces. It does NOT expose the raw embedding numbers — it stores them
+     internally and returns similarity scores. Eye sharpness is a separate image-quality metric. */
+  html+='<small style="color:var(--mut);font-size:11.5px;line-height:1.6;padding:4px 2px">ℹ️ <b>Embeddings</b>: AWS Rekognition converts each enrolled face into a 128-d feature vector (embedding) stored in the Rekognition Collection. During verification it computes cosine similarity between the live face and stored embeddings — you never see the raw numbers. Eye sharpness above is a separate image-quality signal computed locally (Laplacian variance in the eye region).</small>';
+  html+='</div>';el.innerHTML=html;
+}
+async function logLab(J,mode,ms){
+  const rec={kind:'lab',attempt_id:Math.random().toString(36).slice(2,12),prn:'LAB',zone:'lab',truth:evT(),auth_truth:null,
+    decision:{LIVE:'ALLOW',UNCERTAIN:'STEP_UP',SPOOF:'DENY'}[J.v],bio_ok:J.v==='LIVE',live_ok:J.v==='LIVE',time_ms:ms,liveness:J.live,identity:0,
+    spoof_type:J.type,spoof_score:Math.round((1-J.live)*100),reason:J.line,ts:new Date().toISOString(),offline:mode!=='online'};
+  if(mode==='online'){try{await post('/api/sync',{records:[rec]});await loadReport()}catch{}}
+  else setQ([...queue(),rec]);
+}
+$('#runLab').onclick=runLab;
+
+/* ── performance evaluation (measured on scored test runs, never hard-coded) ── */
+const MET=[
+  ['liveness_acc','Liveness accuracy','≥ 99%',v=>v>=.99,'n_live'],
+  ['far','False acceptance (FAR)','≤ 0.2%',v=>v<=.002,'n_att'],
+  ['frr','False rejection (FRR)','≤ 0.6%',v=>v<=.006,'n_gen']
+];
+const TR={live:'🙂 Real',printed:'🖨️ Printed',screen:'🖥️ Screen',video:'📹 Video',mask:'🎭 Mask'};
+async function loadReport(){
+  let d;try{d=await (await fetch('/api/report')).json()}catch{d=window._rep}if(!d)return;window._rep=d;
+  const card=(l,t,cls,lab,val,sub)=>`<div class="m ${cls==='nodata'?'':'has-data'}"><span>${l}</span><span class="st ${cls}">${lab}</span><b>${val}</b><small>${sub}</small></div>`;
+  let h=MET.map(([k,l,t,ok,n])=>{const v=d[k],has=v!=null;
+    return card(l,t,has?(ok(v)?'pass':'fail'):'nodata',has?(ok(v)?'meets target':'below target'):'no data',pct(v,2),`target ${t} · ${d[n]||0} trials`)}).join('');
+  const hasT=d.avg_ms!=null;
+  h+=card('Decision time','≤ 2 s',hasT?(d.within_2s>=.95?'pass':'fail'):'nodata',hasT?(d.within_2s>=.95?'fast enough':'slow'):'no data',hasT?d.avg_ms+' ms':'–',hasT?pct(d.within_2s,0)+' within 2 s':'target ≤ 2 s');
+  $('#metrics').innerHTML=h;
+  $('#scen').innerHTML=Object.keys(TR).map(k=>{const x=(d.by_truth||{})[k];
+    if(!x)return `<span class="sig">${TR[k]}: not tested yet</span>`;
+    return `<span class="sig ${x.correct===x.n?'ok':'warn'}">${TR[k]}: ${x.correct}/${x.n} handled correctly</span>`}).join('');
+  $('#metNote').textContent=d.n_scored
+    ?`${d.n_scored} scored runs. A real person counts as correct when accepted; an attack counts as correct when NOT accepted. Showing a 0.2% FAR needs roughly 500+ attack trials.`
+    :'No scored runs yet. Pick what you are showing in the bar at the bottom, then press Check liveness. Test every attack type (printed, screen, video, mask) as well as real people.';
+}
+
+/* ── Campus Kiosk: barcode -> registered? -> allowed zone + hours? -> ALLOWED / NOT ALLOWED (no face, no spoof check) ── */
+let mode='entry',det=null,zx=null,zxHints=null,scanTimer=null,lastHit={v:'',t:0};
+const FORMATS=['code_128','code_39','code_93','codabar','ean_13','ean_8','upc_a','upc_e','itf','qr_code','data_matrix','pdf417','aztec'];
+const loadJS=src=>new Promise(r=>{const e=document.createElement('script');e.src=src;e.onload=()=>r(true);e.onerror=()=>r(false);document.head.appendChild(e)});
+async function initScanner(){
+  if('BarcodeDetector' in window){try{const sup=await BarcodeDetector.getSupportedFormats(),f=FORMATS.filter(x=>sup.includes(x));if(f.length)det=new BarcodeDetector({formats:f})}catch{}}
+  if(!det){  // Windows/Linux Chrome, Firefox, Safari: use ZXing (put zxing.min.js in static/vendor/ so this works offline)
+    if(!window.ZXing&&!(await loadJS('/vendor/zxing.min.js')))await loadJS('https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js');
+    if(window.ZXing){const F=ZXing.BarcodeFormat;zx=new ZXing.MultiFormatReader();zxHints=new Map();
+      zxHints.set(ZXing.DecodeHintType.TRY_HARDER,true);
+      zxHints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[F.CODE_128,F.CODE_39,F.CODE_93,F.CODABAR,F.EAN_13,F.EAN_8,F.UPC_A,F.UPC_E,F.ITF,F.QR_CODE,F.DATA_MATRIX,F.PDF_417,F.AZTEC])}
+    else $('#prompt').textContent='Barcode scanner could not load — type the barcode instead'}
+  scanLoop();
+}
+async function scanLoop(){
+  clearTimeout(scanTimer);const v=$('#cam');
+  if($('#viewKiosk').classList.contains('hide')||!v.videoWidth||(!det&&!zx)){scanTimer=setTimeout(scanLoop,400);return}
+  /* crop the centre of the full-resolution frame, then try it plain and again with grayscale + contrast boost */
+  const vw=v.videoWidth,vh=v.videoHeight,sw=vw*.84,sh=vh*.6,sx=(vw-sw)/2,sy=(vh-sh)/2;
+  const c=scanLoop.c||(scanLoop.c=document.createElement('canvas'));c.width=sw;c.height=sh;
+  const x=c.getContext('2d',{willReadFrequently:true});let val=null;
+  for(const pass of [0,1]){
+    x.filter=pass?'grayscale(1) contrast(1.9) brightness(1.1)':'none';x.drawImage(v,sx,sy,sw,sh,0,0,sw,sh);
+    try{
+      if(det){const r=await det.detect(c);if(r.length)val=r[0].rawValue}
+      else val=zx.decode(new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(new ZXing.HTMLCanvasElementLuminanceSource(c))),zxHints).getText();
+    }catch{}
+    if(val)break}
+  if(val)onBarcode(val);
+  scanTimer=setTimeout(scanLoop,val?1200:100);
+}
+function onBarcode(raw){
+  const v=raw.trim().toUpperCase(),n=Date.now();if(!v||(v===lastHit.v&&n-lastHit.t<4000))return;lastHit={v,t:n};
+  if(mode==='register'){$('#rgBarcode').value=v;$('#prompt').textContent='Barcode captured: '+v+' — now enter the PRN';$('#rgPrn').focus();return}
+  decide(v);
+}
+function setMode(m){mode=m;
+  $('#pEntry').classList.toggle('hide',m!=='entry');$('#pReg').classList.toggle('hide',m!=='register');
+  $('#modeEntry').classList.toggle('sec',m!=='entry');$('#modeReg').classList.toggle('sec',m!=='register');
+  $('#result').style.display='none';
+  $('#prompt').textContent=m==='entry'?'Hold your student ID barcode inside the frame':'Show the card barcode to register it';
+}
+$('#modeEntry').onclick=()=>setMode('entry');$('#modeReg').onclick=()=>setMode('register');
+$('#bcGo').onclick=()=>{const v=$('#bcManual').value.trim();if(v){lastHit={v:'',t:0};onBarcode(v);$('#bcManual').value=''}};
+$('#bcManual').onkeydown=e=>{if(e.key==='Enter')$('#bcGo').click()};
+$('#useCard').onclick=()=>{lastHit={v:'',t:0};onBarcode($('#cardPrn').textContent)};
+JsBarcode('#bc',$('#cardPrn').textContent,{format:'CODE128',displayValue:false,height:60,margin:0});
+
+const cards=()=>(policy&&policy.cards)||{};
+function inWindow(z){if(!z)return false;const n=new Date(),t=n.getHours()*60+n.getMinutes(),m=s=>s.split(':').reduce((a,b)=>a*60+ +b);return z.days.includes((n.getDay()+6)%7)&&t>=m(z.start)&&t<=m(z.end)}
+async function decide(barcode){
+  const zone=$('#zone').value,t0=performance.now();let res=null;
+  $('#scanRing').classList.add('active');
+  if(!offline()){try{const r=await post('/api/access',{barcode,zone});if(r.ok)res=await r.json()}catch{}}
+  if(!res)res=localAccess(barcode,zone);   // offline, or server unreachable
+  res.client_ms=Math.round(performance.now()-t0);showAccess(res);
+  $('#scanRing').classList.remove('active');
+}
+function localAccess(barcode,zone){
+  const c=cards()[barcode];let ok=false,why;
+  if(!policy||!policy.zones||!Object.keys(policy.zones).length)why='This kiosk has no card list yet — connect once to download it';
+  else if(!c)why='Card not registered';
+  else if(!c.zones.includes(zone))why='Not authorised for '+zone.replace('_',' ');
+  else if(!inWindow(policy.zones[zone]))why='Outside allowed hours for '+zone.replace('_',' ');
+  else{ok=true;why='Registered card, within allowed hours'}
+  const rec={kind:'kiosk',attempt_id:Math.random().toString(36).slice(2,12),barcode,prn:c?c.prn:null,name:c?c.name:null,zone,
+    decision:ok?'ALLOWED':'NOT_ALLOWED',reason:why,time_ms:0,ts:new Date().toISOString(),offline:true};
+  setQ([...queue(),rec]);return rec;
+}
+function showAccess(r){
+  const ok=r.decision==='ALLOWED',el=$('#result');el.className='result '+(ok?'ALLOW':'DENY');el.style.display='block';
+  $('#rDec').innerHTML=`<span class="result-icon">${ok?'✅':'🚫'}</span>${ok?'ALLOWED':'NOT ALLOWED'}`;
+  $('#rWhy').textContent=(r.name?r.name+' · ':'')+(r.prn?r.prn+' — ':'')+r.reason;
+  $('#rMeta').textContent=r.offline?'Decided on this kiosk (offline) · saved to sync later':`Decided by the server in ${r.time_ms} ms (${r.client_ms} ms including network)`;
+  $('#prompt').textContent=ok?'🟢 Door open':'🔴 Not allowed';
+  clearTimeout(rt);rt=setTimeout(resetKiosk,6000);
+}
+function resetKiosk(){clearTimeout(rt);$('#result').style.display='none';lastHit={v:'',t:0};if(mode==='entry')$('#prompt').textContent='Hold your student ID barcode inside the frame'}
+$('#again').onclick=resetKiosk;
+
+$('#rgGo').onclick=async()=>{
+  const barcode=$('#rgBarcode').value.trim().toUpperCase(),prn=$('#rgPrn').value.trim().toUpperCase(),name=$('#rgName').value.trim()||prn,
+    zones=[...document.querySelectorAll('.rgz:checked')].map(x=>x.value),msg=t=>$('#rgMsg').textContent=t;
+  if(!barcode||!prn)return msg('Scan or type the barcode AND enter the PRN.');
+  const body={barcode,prn,name,zones};let done=false;
+  if(!offline()){try{const r=await post('/api/register',body);if(r.ok){const j=await r.json();msg((j.updated?'Updated ':'Registered ')+barcode+' → '+prn);await loadPolicy();done=true}else{return msg((await r.json()).detail||'Server refused the registration')}}catch{}}
+  if(!done){  // offline: keep on this device and sync later
+    policy=policy||{zones:{},cards:{}};policy.cards=policy.cards||{};policy.cards[barcode]={prn,name,zones};
+    localStorage.setItem('policy',JSON.stringify(policy));setQ([...queue(),{kind:'register',...body}]);renderCards();
+    msg('Offline: saved on this kiosk, will sync when online → '+barcode+' → '+prn)}
+  $('#rgBarcode').value=$('#rgPrn').value=$('#rgName').value='';
+};
+function renderCards(){
+  const c=cards(),k=Object.keys(c);$('#cardN').textContent=k.length;
+  $('#cardList').innerHTML=k.length?`<table style="width:100%;border-collapse:collapse"><tr style="text-align:left;color:var(--mut)"><th>Barcode</th><th>PRN</th><th>Name</th><th>Doors</th></tr>`+
+    k.map(b=>`<tr style="border-top:1px solid var(--line)"><td>${b}</td><td>${c[b].prn}</td><td>${c[b].name||''}</td><td>${c[b].zones.join(', ')}</td></tr>`).join('')+'</table>':'No cards registered yet. Use Register card.';
+}
+
+/* ── sync + scoring tools ── */
+async function syncNow(){const q=queue();if(!q.length||offline())return;
+  try{const r=await post('/api/sync',{records:q});if(r.ok){setQ([]);loadReport();loadPolicy()}}catch{}}
+$('#syncBtn').onclick=syncNow;
+$('#csv').onclick=()=>{const rows=(window._rep&&window._rep.recent)||[],h=['ts','kind','prn','barcode','zone','truth','decision','spoof_type','liveness','time_ms','reason'];
+  const csv=[h.join(','),...rows.map(r=>h.map(k=>JSON.stringify(r[k]??'')).join(','))].join('\n'),a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='runs.csv';a.click()};
+$('#reset').onclick=async()=>{if(confirm('Delete ALL saved runs (lab + kiosk log)? Registered cards are kept.')){await fetch('/api/reset',{method:'POST'});loadReport()}};
+setInterval(()=>{if(!offline())loadPolicy()},60000);
+if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
+setQ(queue());renderNet();renderCards();loadPolicy();loadReport();startCam();
+</script>
+</body>
+</html>
